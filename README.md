@@ -1,0 +1,2 @@
+# Disaster_Response_App
+This is a project for my Urban Computing class at Trinity College Dublin as part of my M.Sc in Computer Science course. It involves the use of Fitbit devices to read the heart rate of people in an area and measure it with noise data from the area to determine if a disaster has occurred or not. This data would be crucial for disaster response teams as they can act quickly without anyone from the area reporting about the incident.
