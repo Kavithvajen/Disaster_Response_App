@@ -52,15 +52,17 @@ def noiseDataCollector():
     noise["times"] = pd.to_datetime(noise['times'])
     return noise
 
-def pushToCloud(dtype, data, db):
+def pushToCloud(dtype, data, db, user = None):
     jsonData = data.to_dict(orient = 'records')
 
     if dtype == "heart rate":
         time_df = data.index.to_frame()
         time_jsonData = time_df.to_dict(orient = 'records')
-        doc_ref = db.collection(u'HeartRate_Data')
+        user_a_ref = db.collection(u'Users').document(user)
+        HeartRateData_ref = user_a_ref.collection(u'HeartRateData')
+        #doc_ref = db.collection(u'HeartRate_Data')
         for record, t_record in zip(jsonData, time_jsonData):
-            doc_ref.add({
+            HeartRateData_ref.add({
                 u'Time': t_record["Time"],
                 u'Heart rate [BPM]': record["Heart rate [BPM]"],
             })
@@ -96,7 +98,8 @@ def mainFunc(auth, db):
                 #conn.execute("UPDATE User_endtime SET Time = ? WHERE Userkey = ?", (hr.iloc[-1]["Time"], user))
                 #conn.commit()
             print("Attempting to push HR data to firestore.")
-            pushToCloud("heart rate", hr, db)
+            user = FitbitKeys.getFitbitClientID()
+            pushToCloud("heart rate", hr, db, user)
             print("Heart rate data pushed to firestore.")
 
         elif inp == "2":

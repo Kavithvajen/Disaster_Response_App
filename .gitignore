@@ -4,4 +4,5 @@ FitbitKeys.py
 __pycache__
 .ipynb_checkpoints/
 out.csv
-test.ipynb
+5min_test.ipynb
+firestore_test.ipynb  
