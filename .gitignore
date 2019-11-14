@@ -2,3 +2,6 @@
 Firebase_SA_Key.json
 FitbitKeys.py
 __pycache__
+.ipynb_checkpoints/
+out.csv
+test.ipynb

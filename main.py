@@ -25,23 +25,49 @@ def hrDataCollector(auth):
     heartRate = auth.intraday_time_series(resource = "activities/heart", base_date = 'today', detail_level = '1min', start_time = None, end_time = None)
     df = pd.DataFrame(heartRate["activities-heart-intraday"]["dataset"])
     df = df.rename(columns = {"time": "Time", "value": "Heart rate [BPM]"})
+    #print(df.columns)
+    #print(df.head())
+    try:
+        df["Time"] = pd.to_datetime(df["Time"])
+    except KeyError:
+        print("Sync your fitbit first!")
+        sys.exit()
+    except:
+        print("Unexpected error: ", sys.exc_info()[0])
+        raise
+        sys.exit()
+    
+    #print(df.head())
+    df = df.set_index("Time")
+    #print(df.head())
+    df = df.resample("5T").mean()
+    #print(df.head())
+    #for i in df["Time"]:
+    #    print(i + "\n")
     return df
 
+def noiseDataCollector():
+    noise_data = requests.get("http://dublincitynoise.sonitussystems.com/applications/api/dublinnoisedata.php?location=8")
+    noise = pd.DataFrame.from_dict(noise_data.json())
+    noise["times"] = pd.to_datetime(noise['times'])
+    return noise
+
 def pushToCloud(dtype, data, db):
-    jsonData = data.to_dict(orient='records')
+    jsonData = data.to_dict(orient = 'records')
 
     if dtype == "heart rate":
+        time_df = data.index.to_frame()
+        time_jsonData = time_df.to_dict(orient = 'records')
         doc_ref = db.collection(u'HeartRate_Data')
-        for record in jsonData:
+        for record, t_record in zip(jsonData, time_jsonData):
             doc_ref.add({
-                u'Time': record["Time"],
+                u'Time': t_record["Time"],
                 u'Heart rate [BPM]': record["Heart rate [BPM]"],
             })
     else:
         doc_ref = db.collection(u'Open_Noise_Data')
         for record in jsonData:
             doc_ref.add({
-                u'Date': record["dates"],
                 u'Time': record["times"],
                 u'aleq': record["aleq"],
             })
@@ -62,20 +88,20 @@ def mainFunc(auth, db):
         if inp == "1":
             hr = hrDataCollector(auth)
         
-            if hr.empty:
-                pass
+            #if hr.empty:
+            #    pass
         
-            else:
-                user = FitbitKeys.getFitbitClientID()
+            #else:
+            #    user = FitbitKeys.getFitbitClientID()
                 #conn.execute("UPDATE User_endtime SET Time = ? WHERE Userkey = ?", (hr.iloc[-1]["Time"], user))
                 #conn.commit()
-        
+            print("Attempting to push HR data to firestore.")
             pushToCloud("heart rate", hr, db)
             print("Heart rate data pushed to firestore.")
 
         elif inp == "2":
-            noise_data = requests.get("http://dublincitynoise.sonitussystems.com/applications/api/dublinnoisedata.php?location=8")
-            noise = pd.DataFrame.from_dict(noise_data.json())
+            noise = noiseDataCollector()
+            print("Attempting to push Noise data to firestore.")
             pushToCloud("noise", noise, db)
             print("Noise data pushed to firestore.")
         
