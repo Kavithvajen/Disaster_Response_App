@@ -25,8 +25,7 @@ def hrDataCollector(auth):
     heartRate = auth.intraday_time_series(resource = "activities/heart", base_date = 'today', detail_level = '1min', start_time = None, end_time = None)
     df = pd.DataFrame(heartRate["activities-heart-intraday"]["dataset"])
     df = df.rename(columns = {"time": "Time", "value": "Heart rate [BPM]"})
-    #print(df.columns)
-    #print(df.head())
+    
     try:
         df["Time"] = pd.to_datetime(df["Time"])
     except KeyError:
@@ -37,13 +36,8 @@ def hrDataCollector(auth):
         raise
         sys.exit()
     
-    #print(df.head())
     df = df.set_index("Time")
-    #print(df.head())
     df = df.resample("5T").mean()
-    #print(df.head())
-    #for i in df["Time"]:
-    #    print(i + "\n")
     return df
 
 def noiseDataCollector():
@@ -60,7 +54,6 @@ def pushToCloud(dtype, data, db, user = None):
         time_jsonData = time_df.to_dict(orient = 'records')
         user_a_ref = db.collection(u'Users').document(user)
         HeartRateData_ref = user_a_ref.collection(u'HeartRateData')
-        #doc_ref = db.collection(u'HeartRate_Data')
         for record, t_record in zip(jsonData, time_jsonData):
             HeartRateData_ref.add({
                 u'Time': t_record["Time"],
@@ -74,29 +67,15 @@ def pushToCloud(dtype, data, db, user = None):
                 u'aleq': record["aleq"],
             })
 
-def generateData():
-    print("generateData function to be built.")
-
-def manipulateData():
-    print("manipulateData function to be built.")
-
 def visualization():
     print("visualization function to be built.")
 
 def mainFunc(auth, db):
     while True:
-        inp = input("Enter 1 -> Live HR | 2 -> Live Noise | 3 -> Generate data | 4 -> Manipulate data | 5 -> Visualize | 6 -> Exit : ")
+        inp = input("Enter 1 -> Live HR | 2 -> Live Noise | 3 -> Visualize | 4 -> Exit : ")
         
         if inp == "1":
             hr = hrDataCollector(auth)
-        
-            #if hr.empty:
-            #    pass
-        
-            #else:
-            #    user = FitbitKeys.getFitbitClientID()
-                #conn.execute("UPDATE User_endtime SET Time = ? WHERE Userkey = ?", (hr.iloc[-1]["Time"], user))
-                #conn.commit()
             print("Attempting to push HR data to firestore.")
             user = FitbitKeys.getFitbitClientID()
             pushToCloud("heart rate", hr, db, user)
@@ -109,15 +88,9 @@ def mainFunc(auth, db):
             print("Noise data pushed to firestore.")
         
         elif inp == "3":
-            generateData()
-
-        elif inp == "4":
-            manipulateData()
-
-        elif inp == "5":
             visualization()
-
-        elif inp == "6":
+            
+        elif inp == "4":
             sys.exit()
 
         else:
