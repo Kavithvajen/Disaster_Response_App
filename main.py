@@ -67,12 +67,40 @@ def pushToCloud(dtype, data, db, user = None):
                 u'aleq': record["aleq"],
             })
 
+def actuation():
+    print("actuation function to be built.")
+
 def visualization():
     print("visualization function to be built.")
 
+def instanceDataPreProcessing(hr):
+    hr["Time"] = pd.to_datetime(hr["Time"])
+    hr = hr.set_index("Time")
+    return hr
+
+def otherInstances(db):
+    print("Attempting to push data from other instances.")
+    hr = pd.read_csv("Generated Data/HR/heart_rate_2.csv")
+    hr = instanceDataPreProcessing(hr)
+    pushToCloud("heart rate", hr, db, "Instance-1")
+    print("Pushed Instance-1 data.")
+    hr = pd.read_csv("Generated Data/HR/heart_rate_3.csv")
+    hr = instanceDataPreProcessing(hr)
+    pushToCloud("heart rate", hr, db, "Instance-2")
+    print("Pushed Instance-2 data.")
+    hr = pd.read_csv("Generated Data/HR/heart_rate_4.csv")
+    hr = instanceDataPreProcessing(hr)
+    pushToCloud("heart rate", hr, db, "Instance-3")
+    print("Pushed Instance-3 data.")
+    hr = pd.read_csv("Generated Data/HR/heart_rate_5.csv")
+    hr = instanceDataPreProcessing(hr)
+    pushToCloud("heart rate", hr, db, "Instance-4")
+    print("Pushed Instance-4 data.")
+    print("Done pushing data from other instances.")
+
 def mainFunc(auth, db):
     while True:
-        inp = input("Enter 1 -> Live HR | 2 -> Live Noise | 3 -> Visualize | 4 -> Exit : ")
+        inp = input("Enter 1 -> Live HR | 2 -> Live Noise | 3 -> Instance data | 4 -> Actuation | 5 -> Visualize | 6 -> Exit : ")
         
         if inp == "1":
             hr = hrDataCollector(auth)
@@ -86,11 +114,17 @@ def mainFunc(auth, db):
             print("Attempting to push Noise data to firestore.")
             pushToCloud("noise", noise, db)
             print("Noise data pushed to firestore.")
-        
+
         elif inp == "3":
-            visualization()
-            
+            otherInstances(db)
+        
         elif inp == "4":
+            actuation()
+
+        elif inp == "5":
+            visualization()
+
+        elif inp == "6":
             sys.exit()
 
         else:
