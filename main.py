@@ -68,19 +68,25 @@ def pushToCloud(dtype, data, db, user = None):
             })
 
 def actuation(auth):
-    print("actuation function being built.")
-    hr = []
+    hrList = []
     #hr.append(hrDataCollector(auth).iloc[-1]["Heart rate [BPM]"])
     ##FIX THIS BY SYNCING FITBIT
     for i in range(1,6):
         hrFile = pd.read_csv("Generated_Data/HR/heart_rate_{}.csv".format(i))
         hrFile = instanceDataPreProcessing(hrFile)
-        hr.append(hrFile.iloc[-1]["Heart rate [BPM]"])
+        hrList.append(hrFile.iloc[-1]["Heart rate [BPM]"])
 
-    if all(i >= 100 for i in hr):
-        print("HIGH HR")
+    hr = np.array(hrList)
+
+    if hr.mean() > 100:
+        print("SOMETHING IS HAPPENING!")
+
     else:
-        print("Low")
+        print("Chillout.")
+    #if all(i >= 100 for i in hr):
+    #    print("HIGH HR")
+    #else:
+    #    print("Low")
 
 def visualization():
     print("visualization function to be built.")
