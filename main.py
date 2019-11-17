@@ -67,8 +67,20 @@ def pushToCloud(dtype, data, db, user = None):
                 u'aleq': record["aleq"],
             })
 
-def actuation():
-    print("actuation function to be built.")
+def actuation(auth):
+    print("actuation function being built.")
+    hr = []
+    #hr.append(hrDataCollector(auth).iloc[-1]["Heart rate [BPM]"])
+    ##FIX THIS BY SYNCING FITBIT
+    for i in range(1,6):
+        hrFile = pd.read_csv("Generated_Data/HR/heart_rate_{}.csv".format(i))
+        hrFile = instanceDataPreProcessing(hrFile)
+        hr.append(hrFile.iloc[-1]["Heart rate [BPM]"])
+
+    if all(i >= 100 for i in hr):
+        print("HIGH HR")
+    else:
+        print("Low")
 
 def visualization():
     print("visualization function to be built.")
@@ -80,19 +92,19 @@ def instanceDataPreProcessing(hr):
 
 def otherInstances(db):
     print("Attempting to push data from other instances.")
-    hr = pd.read_csv("Generated Data/HR/heart_rate_2.csv")
+    hr = pd.read_csv("Generated_Data/HR/heart_rate_2.csv")
     hr = instanceDataPreProcessing(hr)
     pushToCloud("heart rate", hr, db, "Instance-1")
     print("Pushed Instance-1 data.")
-    hr = pd.read_csv("Generated Data/HR/heart_rate_3.csv")
+    hr = pd.read_csv("Generated_Data/HR/heart_rate_3.csv")
     hr = instanceDataPreProcessing(hr)
     pushToCloud("heart rate", hr, db, "Instance-2")
     print("Pushed Instance-2 data.")
-    hr = pd.read_csv("Generated Data/HR/heart_rate_4.csv")
+    hr = pd.read_csv("Generated_Data/HR/heart_rate_4.csv")
     hr = instanceDataPreProcessing(hr)
     pushToCloud("heart rate", hr, db, "Instance-3")
     print("Pushed Instance-3 data.")
-    hr = pd.read_csv("Generated Data/HR/heart_rate_5.csv")
+    hr = pd.read_csv("Generated_Data/HR/heart_rate_5.csv")
     hr = instanceDataPreProcessing(hr)
     pushToCloud("heart rate", hr, db, "Instance-4")
     print("Pushed Instance-4 data.")
@@ -100,7 +112,7 @@ def otherInstances(db):
 
 def mainFunc(auth, db):
     while True:
-        inp = input("Enter 1 -> Live HR | 2 -> Live Noise | 3 -> Instance data | 4 -> Actuation | 5 -> Visualize | 6 -> Exit : ")
+        inp = input("Enter 1 -> Live HR | 2 -> Live Noise | 3 -> Instance data | 4 -> Visualize | 5 -> Exit : ")
         
         if inp == "1":
             hr = hrDataCollector(auth)
@@ -111,20 +123,20 @@ def mainFunc(auth, db):
 
         elif inp == "2":
             noise = noiseDataCollector()
-            print("Attempting to push Noise data to firestore.")
-            pushToCloud("noise", noise, db)
-            print("Noise data pushed to firestore.")
+            if float(noise.iloc[-1]["aleq"]) > 50:
+                actuation(auth)
+            else:
+                print("Attempting to push Noise data to firestore.")
+                pushToCloud("noise", noise, db)
+                print("Noise data pushed to firestore.")
 
         elif inp == "3":
             otherInstances(db)
-        
-        elif inp == "4":
-            actuation()
 
-        elif inp == "5":
+        elif inp == "4":
             visualization()
 
-        elif inp == "6":
+        elif inp == "5":
             sys.exit()
 
         else:
