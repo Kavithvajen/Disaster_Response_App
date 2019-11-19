@@ -12,6 +12,8 @@ import json
 import requests
 import time
 import FitbitKeys
+import matplotlib.pyplot as plt
+#import Visualizer
 
 def authorizer(userKey, userSecret):
     server = Oauth2.OAuth2Server(userKey, userSecret)
@@ -68,6 +70,7 @@ def pushToCloud(dtype, data, db, user = None):
             })
 
 def actuation(auth):
+    #hr = accumulateAllHRData(auth)
     hrList = []
     #hr.append(hrDataCollector(auth).iloc[-1]["Heart rate [BPM]"])
     ##FIX THIS BY SYNCING FITBIT
@@ -88,8 +91,52 @@ def actuation(auth):
     #else:
     #    print("Low")
 
-def visualization():
-    print("visualization function to be built.")
+def visualization(auth):
+
+    #Pulling HR Data
+    hrList = []
+    for i in range(1,6):
+        hr = pd.read_csv("Generated_Data/HR/heart_rate_{}.csv".format(i))
+        hr = instanceDataPreProcessing(hr)
+        hrList.append(hr)
+    
+    hr_concat = pd.concat((hrList[0], hrList[1], hrList[2], hrList[3], hrList[4]))
+    temp = hr_concat.groupby(hr_concat.index)
+    hr_means = temp.mean()
+    
+    #Pulling noise data
+    
+    noise = noiseDataCollector()
+    noise = noise.astype({'aleq': 'float64'})
+    #print(noise.dtypes)
+    #noise.plot(kind = "line", x = "times" , y = "aleq")
+    
+    # Weird graph, but okay!? Use as last resort.
+    
+    #ax = plt.gca()
+    #hr_means.plot(kind = 'bar', color = 'blue', width = 0.35, ax = ax)
+    #noise.plot(kind = 'bar', color = 'red', width = 0.35, x = 'times', y = 'aleq', ax = ax)
+    #plt.show()
+
+    #END OF PREVIOUS TRY
+
+    #Good graph, HR in bar and noise in line. Esmond says it hurts his eyes so looking at alternatives.
+    
+    #ax = hr_means.plot(kind = 'bar')
+    #noise['aleq'].plot(color = 'red', secondary_y = True, xlim = ax.get_xlim())
+    #plt.xlabel('Time')
+    #ax.set_ylabel('Heart Rate')
+    #plt.ylabel('A-weighted Equivalent Level (Noise values)')
+    #plt.show()
+
+    #END OF PREVIOUS TRY
+
+    ax = hr_means.plot(kind = "bar", width = 0.1)
+    noise['aleq'].plot(color = 'red', secondary_y = True, xlim = ax.get_xlim())
+    plt.xlabel('Time')
+    ax.set_ylabel('Heart Rate')
+    plt.ylabel('A-weighted Equivalent Level (Noise values)')
+    plt.show()
 
 def instanceDataPreProcessing(hr):
     hr["Time"] = pd.to_datetime(hr["Time"])
@@ -132,15 +179,16 @@ def mainFunc(auth, db):
             if float(noise.iloc[-1]["aleq"]) > 50:
                 actuation(auth)
             else:
-                print("Attempting to push Noise data to firestore.")
-                pushToCloud("noise", noise, db)
-                print("Noise data pushed to firestore.")
+                pass
+            print("Attempting to push Noise data to firestore.")
+            pushToCloud("noise", noise, db)
+            print("Noise data pushed to firestore.")
 
         elif inp == "3":
             otherInstances(db)
 
         elif inp == "4":
-            visualization()
+            visualization(auth)
 
         elif inp == "5":
             sys.exit()
