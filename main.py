@@ -11,9 +11,9 @@ from firebase_admin import firestore
 import json
 import requests
 import time
-import FitbitKeys
+import Keys
 import matplotlib.pyplot as plt
-#import Visualizer
+import Emailer
 
 def authorizer(userKey, userSecret):
     server = Oauth2.OAuth2Server(userKey, userSecret)
@@ -81,8 +81,9 @@ def actuation(auth):
 
     hr = np.array(hrList)
 
-    if hr.mean() > 100:
-        print("SOMETHING IS HAPPENING!")
+    if hr.mean() > 70:
+        print("Sending an email to notify authorities about the potential disaster.")
+        Emailer.sendEmail()
 
     else:
         print("Chillout.")
@@ -105,7 +106,7 @@ def visualization(auth):
     hr_means = temp.mean()
     
     #Pulling noise data
-    
+
     noise = noiseDataCollector()
     noise = noise.astype({'aleq': 'float64'})
     #print(noise.dtypes)
@@ -170,7 +171,7 @@ def mainFunc(auth, db):
         if inp == "1":
             hr = hrDataCollector(auth)
             print("Attempting to push HR data to firestore.")
-            user = FitbitKeys.getFitbitClientID()
+            user = Keys.getFitbitClientID()
             pushToCloud("heart rate", hr, db, user)
             print("Heart rate data pushed to firestore.")
 
@@ -197,8 +198,8 @@ def mainFunc(auth, db):
             pass
 
 def setup():
-    userKey = FitbitKeys.getFitbitClientID()
-    userSecret = FitbitKeys.getFitbitClientSecret()
+    userKey = Keys.getFitbitClientID()
+    userSecret = Keys.getFitbitClientSecret()
     auth = authorizer(userKey, userSecret)
     cred = credentials.Certificate("Firebase_SA_Key.json")
     firebase_admin.initialize_app(cred)

@@ -1,6 +1,6 @@
 .DS_Store
 Firebase_SA_Key.json
-FitbitKeys.py
+Keys.py
 __pycache__
 .ipynb_checkpoints/
 out.csv
