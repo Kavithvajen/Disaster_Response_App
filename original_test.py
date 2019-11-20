@@ -33,7 +33,7 @@ def hrDataCollector(auth):
         df["Time"] = pd.to_datetime(df["Time"])
     except KeyError:
         print("Sync your fitbit first!")
-        return None
+        sys.exit()
     except:
         print("Unexpected error: ", sys.exc_info()[0])
         raise
@@ -71,7 +71,10 @@ def pushToCloud(dtype, data, db, user = None):
             })
 
 def actuation(auth):
+    #hr = accumulateAllHRData(auth)
     hrList = []
+    #hr.append(hrDataCollector(auth).iloc[-1]["Heart rate [BPM]"])
+    ##FIX THIS BY SYNCING FITBIT
     for i in range(1,6):
         hrFile = pd.read_csv("Generated_Data/HR/heart_rate_{}.csv".format(i))
         hrFile = instanceDataPreProcessing(hrFile)
@@ -82,11 +85,13 @@ def actuation(auth):
     if hr.mean() > 70:
         print("Sending an email to notify authorities about the potential disaster.")
         Emailer.sendEmail()
-        print("Check the graph to see why the trigger was set off.")
-        visualization(auth)
+
     else:
-        print("No mandatory action required. Check the graph out if you want.")
-        visualization(auth)
+        print("Chillout.")
+    #if all(i >= 100 for i in hr):
+    #    print("HIGH HR")
+    #else:
+    #    print("Low")
 
 def visualization(auth):
 
@@ -105,6 +110,28 @@ def visualization(auth):
 
     noise = noiseDataCollector()
     noise = noise.astype({'aleq': 'float64'})
+    #print(noise.dtypes)
+    #noise.plot(kind = "line", x = "times" , y = "aleq")
+    
+    # Weird graph, but okay!? Use as last resort.
+    
+    #ax = plt.gca()
+    #hr_means.plot(kind = 'bar', color = 'blue', width = 0.35, ax = ax)
+    #noise.plot(kind = 'bar', color = 'red', width = 0.35, x = 'times', y = 'aleq', ax = ax)
+    #plt.show()
+
+    #END OF PREVIOUS TRY
+
+    #Good graph, HR in bar and noise in line. Esmond says it hurts his eyes so looking at alternatives.
+    
+    #ax = hr_means.plot(kind = 'bar')
+    #noise['aleq'].plot(color = 'red', secondary_y = True, xlim = ax.get_xlim())
+    #plt.xlabel('Time')
+    #ax.set_ylabel('Heart Rate')
+    #plt.ylabel('A-weighted Equivalent Level (Noise values)')
+    #plt.show()
+
+    #END OF PREVIOUS TRY
 
     ax = hr_means.plot(kind = "bar", width = 0.1)
     noise['aleq'].plot(color = 'red', secondary_y = True, xlim = ax.get_xlim())
@@ -119,46 +146,57 @@ def instanceDataPreProcessing(hr):
     return hr
 
 def otherInstances(db):
-    print("Attempting to push emulated data from other sensor instances.")
-    for i in range(2,6):
-        hr = pd.read_csv("Generated_Data/HR/heart_rate_{}.csv".format(i))
-        hr = instanceDataPreProcessing(hr)
-        pushToCloud("heart rate", hr, db, "Instance-{}".format(i))
-        print("Pushed instance-{} of emulated heart rate sensor data".format(i))
-    print("Done pushing emulated heart rate sensor data to firestore.")
+    print("Attempting to push data from other instances.")
+    hr = pd.read_csv("Generated_Data/HR/heart_rate_2.csv")
+    hr = instanceDataPreProcessing(hr)
+    pushToCloud("heart rate", hr, db, "Instance-1")
+    print("Pushed Instance-1 data.")
+    hr = pd.read_csv("Generated_Data/HR/heart_rate_3.csv")
+    hr = instanceDataPreProcessing(hr)
+    pushToCloud("heart rate", hr, db, "Instance-2")
+    print("Pushed Instance-2 data.")
+    hr = pd.read_csv("Generated_Data/HR/heart_rate_4.csv")
+    hr = instanceDataPreProcessing(hr)
+    pushToCloud("heart rate", hr, db, "Instance-3")
+    print("Pushed Instance-3 data.")
+    hr = pd.read_csv("Generated_Data/HR/heart_rate_5.csv")
+    hr = instanceDataPreProcessing(hr)
+    pushToCloud("heart rate", hr, db, "Instance-4")
+    print("Pushed Instance-4 data.")
+    print("Done pushing data from other instances.")
 
 def mainFunc(auth, db):
     while True:
-
-        hr = hrDataCollector(auth)
-        if hr != None:
-            print("Attempting to pull live HR Data and pushing it to firestore.")
+        inp = input("Enter 1 -> Live HR | 2 -> Live Noise | 3 -> Instance data | 4 -> Visualize | 5 -> Exit : ")
+        
+        if inp == "1":
+            hr = hrDataCollector(auth)
+            print("Attempting to push HR data to firestore.")
             user = Keys.getFitbitClientID()
             pushToCloud("heart rate", hr, db, user)
-            print("Live heart rate data from sensor-1 pushed to firestore.")
+            print("Heart rate data pushed to firestore.")
+
+        elif inp == "2":
+            noise = noiseDataCollector()
+            if float(noise.iloc[-1]["aleq"]) > 50:
+                actuation(auth)
+            else:
+                pass
+            print("Attempting to push Noise data to firestore.")
+            pushToCloud("noise", noise, db)
+            print("Noise data pushed to firestore.")
+
+        elif inp == "3":
             otherInstances(db)
 
-        else:
-            print("Attempting to push emulated data to firestore.")
-            hr = pd.read_csv("Generated_Data/HR/heart_rate_1.csv")
-            hr = instanceDataPreProcessing(hr)
-            pushToCloud("heart rate", hr, db, "Instance-1")
-            print("Pushed emulated sensor-1 data.")
-            otherInstances(db)
+        elif inp == "4":
+            visualization(auth)
 
-        print("Pulling live noise data now.")
-        noise = noiseDataCollector()
-        print("Attempting to push live noise data to firestore.")
-        pushToCloud("noise", noise, db)
-        print("Noise data pushed to firestore.")
-        if float(noise.iloc[-1]["aleq"]) > 50:
-            actuation(auth)
+        elif inp == "5":
+            sys.exit()
+
         else:
             pass
-
-        print("Press 'Ctrl+C' if you want to exit the program now.")
-        time.sleep(10)
-
 
 def setup():
     userKey = Keys.getFitbitClientID()
