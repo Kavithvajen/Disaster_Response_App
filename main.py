@@ -15,6 +15,7 @@ import Keys
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 import Emailer
+import os
 
 def authorizer(userKey, userSecret):
     server = Oauth2.OAuth2Server(userKey, userSecret)
@@ -131,19 +132,25 @@ def mainFunc(auth, db):
     while True:
 
         hr = hrDataCollector(auth)
-        if hr != None:
-            print("Attempting to pull live HR Data and pushing it to firestore.")
-            user = Keys.getFitbitClientID()
-            pushToCloud("heart rate", hr, db, user)
-            print("Live heart rate data from sensor-1 pushed to firestore.")
-            otherInstances(db)
-
-        else:
+        #hr = None
+        if hr.empty:
             print("Attempting to push emulated data to firestore.")
             hr = pd.read_csv("Generated_Data/HR/heart_rate_1.csv")
             hr = instanceDataPreProcessing(hr)
             pushToCloud("heart rate", hr, db, "Instance-1")
             print("Pushed emulated sensor-1 data.")
+            otherInstances(db)          
+
+        else:
+            print("Attempting to pull live HR Data and pushing it to firestore.")
+            user = Keys.getFitbitClientID()
+            pushToCloud("heart rate", hr, db, user)
+            pwd = os.getcwd()
+            os.chdir(pwd+'/Generated_Data/HR/')
+            hr.to_csv('heart_rate_1.csv')
+            os.chdir("../")
+            os.chdir("../")
+            print("Live heart rate data from sensor-1 pushed to firestore.")
             otherInstances(db)
 
         print("Pulling live noise data now.")
